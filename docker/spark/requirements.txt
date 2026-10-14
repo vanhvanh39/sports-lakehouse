@@ -1,0 +1,5 @@
+delta-spark==3.2.1
+importlib_metadata==8.5.0
+elasticsearch==8.15.1
+prometheus-client==0.21.1
+requests==2.32.3

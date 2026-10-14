@@ -1,0 +1,4 @@
+policy,days,avg_requests,avg_budget_left,avg_missed,avg_late_only_at_final,avg_delay_p50_s,avg_delay_p95_s,avg_goal_delay_p50_s,avg_goal_delay_p95_s
+adaptive,45,94.0,6.0,0.0,1.1,101.5,228.0,105.8,194.2
+fixed-fair,45,95.6,4.4,0.0,0.8,119.5,204.2,126.4,184.4
+fixed-60s,45,98.7,1.3,20.9,5.9,189.4,1417.2,211.4,649.1

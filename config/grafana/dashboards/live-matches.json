@@ -1,0 +1,415 @@
+{
+ "uid": "live-matches",
+ "title": "Trận đấu trực tiếp",
+ "tags": [
+  "sportslake"
+ ],
+ "timezone": "browser",
+ "schemaVersion": 39,
+ "refresh": "5s",
+ "time": {
+  "from": "now-6h",
+  "to": "now"
+ },
+ "panels": [
+  {
+   "id": 1,
+   "title": "Tỷ số các trận (silver.match_state)",
+   "type": "table",
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 12,
+    "h": 9
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "elasticsearch",
+      "uid": "es_state"
+     },
+     "query": "*",
+     "timeField": "updated_ts",
+     "metrics": [
+      {
+       "id": "1",
+       "type": "raw_data",
+       "settings": {
+        "size": "30"
+       }
+      }
+     ],
+     "bucketAggs": []
+    }
+   ],
+   "options": {},
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "transformations": [
+    {
+     "id": "filterFieldsByName",
+     "options": {
+      "include": {
+       "names": [
+        "match_label",
+        "status_short",
+        "elapsed",
+        "league_name",
+        "source",
+        "updated_ts"
+       ]
+      }
+     }
+    },
+    {
+     "id": "organize",
+     "options": {
+      "indexByName": {
+       "match_label": 0,
+       "status_short": 1,
+       "elapsed": 2,
+       "league_name": 3,
+       "source": 4,
+       "updated_ts": 5
+      },
+      "renameByName": {
+       "match_label": "Trận",
+       "status_short": "Trạng thái",
+       "elapsed": "Phút",
+       "league_name": "Giải",
+       "source": "Nguồn",
+       "updated_ts": "Cập nhật"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "title": "Cảnh báo gần nhất (V1 luật / V2 chấm điểm)",
+   "type": "table",
+   "gridPos": {
+    "x": 12,
+    "y": 0,
+    "w": 12,
+    "h": 9
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "elasticsearch",
+      "uid": "es_alerts"
+     },
+     "query": "*",
+     "timeField": "alert_ts",
+     "metrics": [
+      {
+       "id": "1",
+       "type": "raw_data",
+       "settings": {
+        "size": "30"
+       }
+      }
+     ],
+     "bucketAggs": []
+    }
+   ],
+   "options": {},
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "transformations": [
+    {
+     "id": "filterFieldsByName",
+     "options": {
+      "include": {
+       "names": [
+        "alert_sent_ts",
+        "version",
+        "match_label",
+        "minute",
+        "message",
+        "source_to_alert_s"
+       ]
+      }
+     }
+    },
+    {
+     "id": "organize",
+     "options": {
+      "indexByName": {
+       "alert_sent_ts": 0,
+       "version": 1,
+       "match_label": 2,
+       "minute": 3,
+       "message": 4,
+       "source_to_alert_s": 5
+      },
+      "renameByName": {
+       "alert_sent_ts": "Thời điểm",
+       "version": "Bản",
+       "match_label": "Trận",
+       "minute": "Phút",
+       "message": "Nội dung",
+       "source_to_alert_s": "Trễ (s)"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "title": "Chỉ số kịch tính theo trận",
+   "type": "timeseries",
+   "gridPos": {
+    "x": 0,
+    "y": 9,
+    "w": 24,
+    "h": 9
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "elasticsearch",
+      "uid": "es_exc"
+     },
+     "query": "*",
+     "timeField": "ts",
+     "metrics": [
+      {
+       "id": "1",
+       "type": "max",
+       "field": "score"
+      }
+     ],
+     "bucketAggs": [
+      {
+       "id": "2",
+       "type": "terms",
+       "field": "match_label",
+       "settings": {
+        "size": "10",
+        "order": "desc",
+        "orderBy": "_term",
+        "min_doc_count": "1"
+       }
+      },
+      {
+       "id": "3",
+       "type": "date_histogram",
+       "field": "ts",
+       "settings": {
+        "interval": "auto",
+        "min_doc_count": "0"
+       }
+      }
+     ]
+    }
+   ],
+   "options": {},
+   "fieldConfig": {
+    "defaults": {
+     "custom": {
+      "lineWidth": 2,
+      "fillOpacity": 8,
+      "spanNulls": true
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "red",
+        "value": 6
+       }
+      ]
+     }
+    },
+    "overrides": []
+   }
+  },
+  {
+   "id": 4,
+   "title": "Sự kiện mới nhất (đã bỏ chuyền bóng/phạm lỗi)",
+   "type": "table",
+   "gridPos": {
+    "x": 0,
+    "y": 18,
+    "w": 14,
+    "h": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "elasticsearch",
+      "uid": "es_events"
+     },
+     "query": "NOT category:OTHER AND NOT category:FOUL",
+     "timeField": "processed_ts",
+     "metrics": [
+      {
+       "id": "1",
+       "type": "raw_data",
+       "settings": {
+        "size": "40"
+       }
+      }
+     ],
+     "bucketAggs": []
+    }
+   ],
+   "options": {},
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "transformations": [
+    {
+     "id": "filterFieldsByName",
+     "options": {
+      "include": {
+       "names": [
+        "processed_ts",
+        "match_id",
+        "minute",
+        "category",
+        "event_detail",
+        "team_name",
+        "player_name",
+        "is_deleted",
+        "version_count"
+       ]
+      }
+     }
+    },
+    {
+     "id": "organize",
+     "options": {
+      "indexByName": {
+       "processed_ts": 0,
+       "match_id": 1,
+       "minute": 2,
+       "category": 3,
+       "event_detail": 4,
+       "team_name": 5,
+       "player_name": 6,
+       "is_deleted": 7,
+       "version_count": 8
+      },
+      "renameByName": {
+       "processed_ts": "Xử lý lúc",
+       "minute": "Phút",
+       "category": "Loại",
+       "event_detail": "Chi tiết",
+       "team_name": "Đội",
+       "player_name": "Cầu thủ",
+       "is_deleted": "Đã thu hồi",
+       "version_count": "Số phiên bản"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "title": "Bảng xếp hạng (gold.standings)",
+   "type": "table",
+   "gridPos": {
+    "x": 14,
+    "y": 18,
+    "w": 10,
+    "h": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "elasticsearch",
+      "uid": "es_stand"
+     },
+     "query": "*",
+     "timeField": "updated_ts",
+     "metrics": [
+      {
+       "id": "1",
+       "type": "raw_data",
+       "settings": {
+        "size": "60"
+       }
+      }
+     ],
+     "bucketAggs": []
+    }
+   ],
+   "options": {},
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "transformations": [
+    {
+     "id": "filterFieldsByName",
+     "options": {
+      "include": {
+       "names": [
+        "league_name",
+        "rank",
+        "team_name",
+        "played",
+        "won",
+        "drawn",
+        "lost",
+        "gd",
+        "points"
+       ]
+      }
+     }
+    },
+    {
+     "id": "organize",
+     "options": {
+      "indexByName": {
+       "league_name": 0,
+       "rank": 1,
+       "team_name": 2,
+       "played": 3,
+       "won": 4,
+       "drawn": 5,
+       "lost": 6,
+       "gd": 7,
+       "points": 8
+      },
+      "renameByName": {
+       "league_name": "Giải",
+       "rank": "#",
+       "team_name": "Đội",
+       "played": "Trận",
+       "won": "T",
+       "drawn": "H",
+       "lost": "B",
+       "gd": "HS",
+       "points": "Điểm"
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "editable": true,
+ "annotations": {
+  "list": []
+ },
+ "templating": {
+  "list": []
+ }
+}

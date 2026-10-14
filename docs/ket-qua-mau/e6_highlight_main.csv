@@ -1,0 +1,4 @@
+version,threshold,matches,alerts,alerts_per_match,moments,precision,recall,f1,latency_p50_s,latency_p95_s,recall_GOAL,recall_OWN_GOAL,recall_RED_CARD,recall_PENALTY,recall_BIG_CHANCE,set
+V1,,51,133,2.61,171,1.0,0.778,0.875,0,0.0,1.0,1.0,1.0,1.0,0.026,test
+V2,7.0,51,93,1.82,171,0.849,0.462,0.598,0,0.0,0.495,0.7,0.0,0.273,0.436,test
+V1+V2,7.0,51,166,3.25,171,0.904,0.877,0.89,0.0,0.0,1.0,1.0,1.0,1.0,0.462,test

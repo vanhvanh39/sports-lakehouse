@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: pipeline          # driver Spark: tốc độ, lag, thời gian MERGE, DLQ, cảnh báo
+    static_configs: [{targets: ["spark-pipeline:9108"]}]
+  - job_name: collector         # số request API, hạn mức còn lại, độ trễ phát hiện
+    static_configs: [{targets: ["collector:9109"]}]
+  - job_name: alerter
+    static_configs: [{targets: ["alerter:9110"]}]
+  - job_name: kafka             # offset từng partition, tốc độ ghi vào topic
+    static_configs: [{targets: ["kafka-exporter:9308"]}]
+  - job_name: prometheus
+    static_configs: [{targets: ["localhost:9090"]}]

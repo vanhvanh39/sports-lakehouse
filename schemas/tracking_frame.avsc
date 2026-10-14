@@ -1,0 +1,23 @@
+{
+  "type": "record",
+  "name": "TrackingFrame",
+  "namespace": "sportslake.v1",
+  "doc": "Một khung hình dữ liệu vị trí 25 Hz (Metrica): vị trí bóng và mọi cầu thủ.",
+  "fields": [
+    {"name": "match_id", "type": "string"},
+    {"name": "period", "type": "int"},
+    {"name": "frame", "type": "long"},
+    {"name": "time_s", "type": "double"},
+    {"name": "ball_x", "type": ["null", "double"], "default": null},
+    {"name": "ball_y", "type": ["null", "double"], "default": null},
+    {"name": "players", "type": {"type": "array", "items": {
+      "type": "record", "name": "PlayerPos", "fields": [
+        {"name": "team", "type": "string"},
+        {"name": "player", "type": "string"},
+        {"name": "x", "type": ["null", "double"], "default": null},
+        {"name": "y", "type": ["null", "double"], "default": null}
+      ]}}},
+    {"name": "source_ts", "type": "long"},
+    {"name": "ingest_ts", "type": "long"}
+  ]
+}

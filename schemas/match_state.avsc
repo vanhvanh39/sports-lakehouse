@@ -1,0 +1,30 @@
+{
+  "type": "record",
+  "name": "MatchState",
+  "namespace": "sportslake.v1",
+  "doc": "Ảnh chụp trạng thái trận: tỷ số, trạng thái, phút thi đấu.",
+  "fields": [
+    {"name": "match_id", "type": "string"},
+    {"name": "source", "type": "string"},
+    {"name": "seq", "type": "long"},
+    {"name": "league_id", "type": ["null", "string"], "default": null},
+    {"name": "league_name", "type": ["null", "string"], "default": null},
+    {"name": "season", "type": ["null", "string"], "default": null},
+    {"name": "round", "type": ["null", "string"], "default": null},
+    {"name": "home_team_id", "type": ["null", "string"], "default": null},
+    {"name": "home_team", "type": ["null", "string"], "default": null},
+    {"name": "away_team_id", "type": ["null", "string"], "default": null},
+    {"name": "away_team", "type": ["null", "string"], "default": null},
+    {"name": "home_goals", "type": "int"},
+    {"name": "away_goals", "type": "int"},
+    {"name": "status_short", "type": "string", "doc": "NS, 1H, HT, 2H, ET, BT, P, FT, AET, PEN"},
+    {"name": "status_long", "type": ["null", "string"], "default": null},
+    {"name": "elapsed", "type": ["null", "int"], "default": null},
+    {"name": "extra", "type": ["null", "int"], "default": null},
+    {"name": "kickoff_ts", "type": ["null", "long"], "default": null},
+    {"name": "venue", "type": ["null", "string"], "default": null},
+    {"name": "source_ts", "type": "long"},
+    {"name": "ingest_ts", "type": "long"},
+    {"name": "schema_version", "type": "int", "default": 1}
+  ]
+}

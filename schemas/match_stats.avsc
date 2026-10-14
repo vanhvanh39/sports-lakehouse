@@ -1,0 +1,25 @@
+{
+  "type": "record",
+  "name": "MatchStats",
+  "namespace": "sportslake.v1",
+  "doc": "Thống kê đội trong trận.",
+  "fields": [
+    {"name": "match_id", "type": "string"},
+    {"name": "team_id", "type": "string"},
+    {"name": "team_name", "type": ["null", "string"], "default": null},
+    {"name": "source", "type": "string"},
+    {"name": "seq", "type": "long"},
+    {"name": "shots_total", "type": ["null", "int"], "default": null},
+    {"name": "shots_on_target", "type": ["null", "int"], "default": null},
+    {"name": "possession_pct", "type": ["null", "double"], "default": null},
+    {"name": "corners", "type": ["null", "int"], "default": null},
+    {"name": "fouls", "type": ["null", "int"], "default": null},
+    {"name": "yellow_cards", "type": ["null", "int"], "default": null},
+    {"name": "red_cards", "type": ["null", "int"], "default": null},
+    {"name": "xg", "type": ["null", "double"], "default": null},
+    {"name": "stats_json", "type": ["null", "string"], "default": null},
+    {"name": "source_ts", "type": "long"},
+    {"name": "ingest_ts", "type": "long"},
+    {"name": "schema_version", "type": "int", "default": 1}
+  ]
+}

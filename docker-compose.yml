@@ -1,0 +1,293 @@
+# =====================================================================
+#  Sports Lakehouse - cụm giả lập bằng Docker Compose
+#  Khởi động:  .\manage.ps1 up        (hoặc: docker compose up -d --build)
+#  Giao diện thêm (Kibana, kafka-ui):  .\manage.ps1 up -Ui
+# =====================================================================
+name: sportslake
+
+x-kafka-env: &kafka-env
+  KAFKA_PROCESS_ROLES: broker,controller
+  KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+  KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+  KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+  KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka1:29093,2@kafka2:29093,3@kafka3:29093
+  CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+  KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+  KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+  KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+  KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+  KAFKA_MIN_INSYNC_REPLICAS: 2
+  KAFKA_NUM_PARTITIONS: 3
+  KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+  KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+  KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+  KAFKA_LOG_RETENTION_HOURS: 168
+  KAFKA_HEAP_OPTS: -Xms384m -Xmx384m
+
+x-kafka-common: &kafka-common
+  image: apache/kafka:3.8.1
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:19092 > /dev/null 2>&1 || exit 1"]
+    interval: 10s
+    timeout: 10s
+    retries: 18
+    start_period: 20s
+
+x-app: &app
+  build:
+    context: .
+    dockerfile: docker/app/Dockerfile
+  image: sportslake-app:latest
+  env_file: .env
+  volumes:
+    - ./src:/opt/app/src
+    - ./schemas:/opt/app/schemas
+    - ./data:/opt/app/data
+    - ./tests:/opt/app/tests
+
+x-spark: &spark
+  build:
+    context: .
+    dockerfile: docker/spark/Dockerfile
+  image: sportslake-spark:latest
+  env_file: .env
+  user: root
+  volumes:
+    - ./src:/opt/app/src
+    - ./schemas:/opt/app/schemas
+    - ./data:/opt/app/data
+    - spark-checkpoints:/opt/checkpoints
+
+services:
+  # ------------------------------------------------------------ Kafka (KRaft, 3 broker)
+  kafka1:
+    <<: *kafka-common
+    hostname: kafka1
+    environment:
+      <<: *kafka-env
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:19092,CONTROLLER://0.0.0.0:29093,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:19092,EXTERNAL://localhost:9092
+    ports: ["9092:9092"]
+
+  kafka2:
+    <<: *kafka-common
+    hostname: kafka2
+    environment:
+      <<: *kafka-env
+      KAFKA_NODE_ID: 2
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:19092,CONTROLLER://0.0.0.0:29093,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka2:19092,EXTERNAL://localhost:9094
+    ports: ["9094:9092"]
+
+  kafka3:
+    <<: *kafka-common
+    hostname: kafka3
+    environment:
+      <<: *kafka-env
+      KAFKA_NODE_ID: 3
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:19092,CONTROLLER://0.0.0.0:29093,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka3:19092,EXTERNAL://localhost:9096
+    ports: ["9096:9092"]
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.7.1
+    hostname: schema-registry
+    restart: unless-stopped
+    depends_on:
+      kafka1: {condition: service_healthy}
+      kafka2: {condition: service_healthy}
+      kafka3: {condition: service_healthy}
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka1:19092,PLAINTEXT://kafka2:19092,PLAINTEXT://kafka3:19092
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: 3
+      SCHEMA_REGISTRY_HEAP_OPTS: -Xms256m -Xmx256m
+    ports: ["8081:8081"]
+
+  # ------------------------------------------------------------ Lưu trữ lakehouse (S3)
+  minio:
+    image: minio/minio:latest
+    hostname: minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin123}
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [minio-data:/data]
+
+  # ------------------------------------------------------------ Phục vụ & trực quan hóa
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    hostname: elasticsearch
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms768m -Xmx768m
+      cluster.routing.allocation.disk.threshold_enabled: "false"
+    ports: ["9200:9200"]
+    volumes: [es-data:/usr/share/elasticsearch/data]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -vq '\"status\":\"red\"'"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+
+  # ------------------------------------------------------------ Khởi tạo (chạy một lần rồi thoát)
+  init:
+    <<: *app
+    restart: "no"
+    command: ["python", "-m", "sportslake.tools.init_infra"]
+    depends_on:
+      kafka1: {condition: service_healthy}
+      kafka2: {condition: service_healthy}
+      kafka3: {condition: service_healthy}
+      schema-registry: {condition: service_started}
+      minio: {condition: service_started}
+      elasticsearch: {condition: service_healthy}
+
+  # ------------------------------------------------------------ Spark standalone
+  spark-master:
+    <<: *spark
+    hostname: spark-master
+    restart: unless-stopped
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master", "--host", "spark-master"]
+    environment:
+      SPARK_DAEMON_MEMORY: 384m
+    ports: ["8080:8080", "7077:7077"]
+
+  spark-worker:
+    <<: *spark
+    restart: unless-stopped
+    # quảng bá địa chỉ IP của container để driver kết nối được tới executor (kể cả khi --scale spark-worker=N)
+    command: ["bash", "-c", "export SPARK_LOCAL_HOSTNAME=$$(hostname -i | awk '{print $$1}'); exec /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077"]
+    depends_on: [spark-master]
+    environment:
+      SPARK_WORKER_CORES: ${SPARK_WORKER_CORES:-4}
+      SPARK_WORKER_MEMORY: ${SPARK_WORKER_MEMORY:-4g}
+      SPARK_DAEMON_MEMORY: 256m
+
+  # Driver của pipeline streaming (một ứng dụng Spark, nhiều truy vấn)
+  spark-pipeline:
+    <<: *spark
+    hostname: spark-pipeline
+    restart: on-failure
+    command: ["/opt/app/run-pipeline.sh"]
+    depends_on:
+      init: {condition: service_completed_successfully}
+      spark-master: {condition: service_started}
+      spark-worker: {condition: service_started}
+    environment:
+      RUN_ID: ${RUN_ID:-}
+      TRACKING_RUN_ID: ${TRACKING_RUN_ID:-default}
+      PIPELINE_CORES_MAX: ${PIPELINE_CORES_MAX:-2}
+    ports: ["4040:4040", "9108:9108"]
+
+  # Job batch định kỳ (gold) + công cụ Spark SQL
+  jobs:
+    <<: *spark
+    hostname: jobs
+    restart: unless-stopped
+    command: ["python3", "-m", "sportslake.batch.job_runner"]
+    depends_on:
+      init: {condition: service_completed_successfully}
+      spark-master: {condition: service_started}
+    ports: ["4041:4041"]
+
+  # ------------------------------------------------------------ Thu thập
+  mock-api:
+    <<: *app
+    hostname: mock-api
+    restart: unless-stopped
+    command: ["uvicorn", "sportslake.mock_api.server:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports: ["8000:8000"]
+
+  collector:
+    <<: *app
+    hostname: collector
+    restart: unless-stopped
+    command: ["python", "-m", "sportslake.ingestion.collector"]
+    depends_on:
+      init: {condition: service_completed_successfully}
+      mock-api: {condition: service_started}
+    ports: ["9109:9109"]
+
+  alerter:
+    <<: *app
+    hostname: alerter
+    restart: unless-stopped
+    command: ["python", "-m", "sportslake.serving.alerter"]
+    depends_on:
+      init: {condition: service_completed_successfully}
+    ports: ["9110:9110"]
+
+  # ------------------------------------------------------------ Giám sát
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:v1.8.0
+    restart: unless-stopped
+    command: ["--kafka.server=kafka1:19092", "--kafka.server=kafka2:19092", "--kafka.server=kafka3:19092"]
+    depends_on:
+      init: {condition: service_completed_successfully}
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    restart: unless-stopped
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=7d"]
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports: ["9090:9090"]
+
+  grafana:
+    image: grafana/grafana:11.2.2
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/live-matches.json
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports: ["3000:3000"]
+    depends_on: [prometheus, elasticsearch]
+
+  # ------------------------------------------------------------ Giao diện tùy chọn (profile "ui")
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.15.3
+    profiles: ["ui"]
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      NODE_OPTIONS: --max-old-space-size=512
+    ports: ["5601:5601"]
+    depends_on: [elasticsearch]
+
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:v1.0.0
+    profiles: ["ui"]
+    environment:
+      KAFKA_CLUSTERS_0_NAME: sportslake
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka1:19092,kafka2:19092,kafka3:19092
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
+    ports: ["8085:8080"]
+    depends_on: [schema-registry]
+
+  # ------------------------------------------------------------ Công cụ (profile "tools")
+  # docker compose run --rm tools python -m sportslake.ingestion.replay_statsbomb ...
+  tools:
+    <<: *app
+    profiles: ["tools"]
+    command: ["python", "-m", "sportslake.tools.admin", "topics"]
+
+volumes:
+  minio-data:
+  es-data:
+  spark-checkpoints:
+  prometheus-data:
+  grafana-data:

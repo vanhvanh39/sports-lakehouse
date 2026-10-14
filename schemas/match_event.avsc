@@ -1,0 +1,33 @@
+{
+  "type": "record",
+  "name": "MatchEvent",
+  "namespace": "sportslake.v1",
+  "doc": "Sự kiện chuẩn hóa trong trận (bàn thắng, thẻ, thay người, VAR, cú sút...). op=UPSERT ghi/sửa, op=RETRACT thu hồi.",
+  "fields": [
+    {"name": "event_id", "type": "string", "doc": "Định danh ổn định của sự kiện, dùng làm khóa MERGE"},
+    {"name": "match_id", "type": "string"},
+    {"name": "source", "type": "string", "doc": "apifootball | mock | statsbomb | replay-api"},
+    {"name": "op", "type": "string", "doc": "UPSERT | RETRACT"},
+    {"name": "seq", "type": "long", "doc": "Số thứ tự tăng dần theo phiên bản của sự kiện"},
+    {"name": "category", "type": "string", "doc": "GOAL, OWN_GOAL, SHOT, CARD_YELLOW, CARD_RED, PENALTY_AWARDED, SUB, VAR, FOUL, OTHER"},
+    {"name": "event_type", "type": "string"},
+    {"name": "event_detail", "type": ["null", "string"], "default": null},
+    {"name": "period", "type": "int"},
+    {"name": "minute", "type": "int"},
+    {"name": "second", "type": "int"},
+    {"name": "match_clock_s", "type": "int", "doc": "Đồng hồ trận liên tục, mỗi hiệp có offset riêng"},
+    {"name": "team_id", "type": ["null", "string"], "default": null},
+    {"name": "team_name", "type": ["null", "string"], "default": null},
+    {"name": "player_id", "type": ["null", "string"], "default": null},
+    {"name": "player_name", "type": ["null", "string"], "default": null},
+    {"name": "related_player_name", "type": ["null", "string"], "default": null},
+    {"name": "x", "type": ["null", "double"], "default": null},
+    {"name": "y", "type": ["null", "double"], "default": null},
+    {"name": "xg", "type": ["null", "double"], "default": null},
+    {"name": "outcome", "type": ["null", "string"], "default": null},
+    {"name": "payload", "type": ["null", "string"], "default": null, "doc": "JSON gốc của nguồn"},
+    {"name": "source_ts", "type": "long", "doc": "epoch ms: thời điểm sự kiện xuất hiện ở nguồn"},
+    {"name": "ingest_ts", "type": "long", "doc": "epoch ms: thời điểm collector gửi vào Kafka"},
+    {"name": "schema_version", "type": "int", "default": 1}
+  ]
+}

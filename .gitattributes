@@ -1,0 +1,5 @@
+*.sh   text eol=lf
+*.py   text eol=lf
+*.yml  text eol=lf
+*.avsc text eol=lf
+*.ps1  text eol=crlf

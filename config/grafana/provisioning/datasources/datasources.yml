@@ -1,0 +1,38 @@
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: prom
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+  - name: ES match_state
+    uid: es_state
+    type: elasticsearch
+    access: proxy
+    url: http://elasticsearch:9200
+    jsonData: {index: match_state, timeField: updated_ts, interval: null}
+  - name: ES match_events
+    uid: es_events
+    type: elasticsearch
+    access: proxy
+    url: http://elasticsearch:9200
+    jsonData: {index: match_events, timeField: processed_ts, interval: null}
+  - name: ES excitement
+    uid: es_exc
+    type: elasticsearch
+    access: proxy
+    url: http://elasticsearch:9200
+    jsonData: {index: excitement, timeField: ts, interval: null}
+  - name: ES alerts
+    uid: es_alerts
+    type: elasticsearch
+    access: proxy
+    url: http://elasticsearch:9200
+    jsonData: {index: alerts, timeField: alert_ts, interval: null}
+  - name: ES standings
+    uid: es_stand
+    type: elasticsearch
+    access: proxy
+    url: http://elasticsearch:9200
+    jsonData: {index: gold_standings, timeField: updated_ts, interval: null}
