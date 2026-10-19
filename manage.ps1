@@ -75,7 +75,9 @@ switch ($Command) {
         Ensure-Setup
         $args2 = @()
         if ($Ui) { $args2 += @("--profile", "ui") }
-        $args2 += @("up", "-d", "--build")
+        # build trước (chỉ init và spark-master có "build"), sau đó mới tạo container
+        Invoke-Compose @("build")
+        $args2 += @("up", "-d")
         Invoke-Compose $args2
         Show-Urls
         Write-Host ""

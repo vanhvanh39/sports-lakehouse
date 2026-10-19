@@ -22,6 +22,10 @@
     "w": 8,
     "h": 8
    },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
+   },
    "targets": [
     {
      "refId": "A",
@@ -48,6 +52,10 @@
     "y": 0,
     "w": 8,
     "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
    },
    "targets": [
     {
@@ -85,6 +93,10 @@
     "w": 8,
     "h": 8
    },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
+   },
    "targets": [
     {
      "refId": "A",
@@ -112,6 +124,10 @@
     "w": 8,
     "h": 8
    },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
+   },
    "targets": [
     {
      "refId": "A",
@@ -138,6 +154,10 @@
     "y": 8,
     "w": 8,
     "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
    },
    "targets": [
     {
@@ -175,6 +195,10 @@
     "w": 8,
     "h": 8
    },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
+   },
    "targets": [
     {
      "refId": "A",
@@ -211,6 +235,10 @@
     "w": 8,
     "h": 8
    },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
+   },
    "targets": [
     {
      "refId": "A",
@@ -238,6 +266,10 @@
     "w": 8,
     "h": 8
    },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
+   },
    "targets": [
     {
      "refId": "A",
@@ -264,6 +296,10 @@
     "y": 16,
     "w": 8,
     "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
    },
    "targets": [
     {
@@ -301,6 +337,10 @@
     "w": 6,
     "h": 7
    },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
+   },
    "targets": [
     {
      "refId": "A",
@@ -328,6 +368,10 @@
     "w": 6,
     "h": 7
    },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
+   },
    "targets": [
     {
      "refId": "A",
@@ -354,6 +398,10 @@
     "y": 24,
     "w": 6,
     "h": 7
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
    },
    "targets": [
     {
@@ -391,6 +439,10 @@
     "w": 6,
     "h": 7
    },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
+   },
    "targets": [
     {
      "refId": "A",
@@ -417,6 +469,10 @@
     "y": 31,
     "w": 24,
     "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prom"
    },
    "targets": [
     {

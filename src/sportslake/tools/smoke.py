@@ -104,7 +104,21 @@ def alerts_delivered():
     return not missing, f"{len(ids)} cảnh báo trong silver, {len(found)} có trong ES, thiếu {len(missing)}"
 
 
-def mock_truth(wait_min: float):
+def pipeline_speed():
+    """Thời gian xử lý các vi lô silver_events gần nhất (để biết pipeline có theo kịp không)."""
+    from ..config import DATA_DIR
+    from ..experiments.common import read_jsonl, summary
+
+    rows = [r for r in read_jsonl(DATA_DIR / "metrics" / "batch_metrics.jsonl") if r.get("query") == "silver_events"][-30:]
+    if not rows:
+        return False, "chưa có vi lô silver_events nào ghi xong (pipeline chưa xử lý được dữ liệu)"
+    b = summary([r["batch_s"] for r in rows])
+    m = summary([r["merge_s"] for r in rows])
+    return True, (f"{len(rows)} vi lô gần nhất: thời gian vi lô p50={b['p50']}s max={b['max']}s, "
+                  f"MERGE p50={m['p50']}s")
+
+
+def mock_truth(wait_min: float, settle_min: float):
     from ..experiments.e3_verify import verify_mock
 
     s = get_settings()
@@ -115,13 +129,22 @@ def mock_truth(wait_min: float):
             break
         left = max(x["ends_in_s"] for x in sc)
         print(f"  ... chờ các trận Mock kết thúc (còn ~{left:.0f}s)")
-        time.sleep(min(60, max(10, left + 90)))
-    # đợi thêm cho collector chốt trận và pipeline ghi xong
-    time.sleep(5)
-    rows = verify_mock()
+        time.sleep(min(60, max(10, left + 5)))
+    # Trận kết thúc ở Mock chưa có nghĩa là đã vào bảng silver: collector cần một lượt gọi để thấy trận rời
+    # danh sách live và chốt kết quả, rồi pipeline cần vài vi lô để ghi. Kiểm tra lặp lại tới khi khớp
+    # hoặc hết thời gian chờ (--settle-min).
+    settle_end = time.time() + settle_min * 60
+    while True:
+        rows = verify_mock()
+        bad = [r for r in rows if not r["correct"]]
+        if rows and not bad:
+            break
+        if time.time() > settle_end:
+            break
+        print(f"  ... {len(rows) - len(bad)}/{len(rows)} trận đã khớp, chờ collector chốt trận và pipeline ghi xong")
+        time.sleep(20)
     if not rows:
         return False, "chưa có trận Mock nào kết thúc (thử --wait-mock 20)"
-    bad = [r for r in rows if not r["correct"]]
     if bad:
         print(md_table(bad))
     return not bad, f"{len(rows) - len(bad)}/{len(rows)} trận khớp đáp án (sự kiện cuối, tỷ số)"
@@ -130,6 +153,8 @@ def mock_truth(wait_min: float):
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--wait-mock", type=float, default=0, help="số phút tối đa chờ các trận Mock kết thúc")
+    ap.add_argument("--settle-min", type=float, default=6,
+                    help="sau khi trận kết thúc, số phút tối đa chờ dữ liệu vào silver trước khi kết luận")
     a = ap.parse_args()
     check("Kafka 3 broker + đủ topic", kafka)
     check("Schema Registry có lược đồ", schema_registry)
@@ -137,8 +162,9 @@ def main() -> None:
     check("Pipeline xuất metrics Prometheus", metrics_endpoint)
     check("Các truy vấn streaming đang chạy", pipeline_queries)
     check("Bảng bronze/silver có dữ liệu", silver_tables)
+    check("Tốc độ xử lý vi lô silver_events", pipeline_speed)
     check("Cảnh báo đã tới Elasticsearch", alerts_delivered)
-    check("Trận Mock khớp đáp án", lambda: mock_truth(a.wait_mock))
+    check("Trận Mock khớp đáp án", lambda: mock_truth(a.wait_mock, a.settle_min))
     print("\n" + md_table(RESULTS))
     n_bad = sum(1 for r in RESULTS if r["kết quả"] != "ĐẠT")
     print(f"\n{len(RESULTS) - n_bad}/{len(RESULTS)} mục đạt")

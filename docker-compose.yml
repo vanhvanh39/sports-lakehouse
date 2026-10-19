@@ -34,11 +34,12 @@ x-kafka-common: &kafka-common
     retries: 18
     start_period: 20s
 
+# Mỗi ảnh chỉ được build bởi MỘT dịch vụ (init cho sportslake-app, spark-master cho sportslake-spark).
+# Các dịch vụ khác dùng lại ảnh đó. Nếu nhiều dịch vụ cùng có "build" với cùng tên ảnh, Docker Desktop
+# build song song rồi báo lỗi: image "...:latest" already exists.
 x-app: &app
-  build:
-    context: .
-    dockerfile: docker/app/Dockerfile
   image: sportslake-app:latest
+  pull_policy: never
   env_file: .env
   volumes:
     - ./src:/opt/app/src
@@ -47,10 +48,8 @@ x-app: &app
     - ./tests:/opt/app/tests
 
 x-spark: &spark
-  build:
-    context: .
-    dockerfile: docker/spark/Dockerfile
   image: sportslake-spark:latest
+  pull_policy: never
   env_file: .env
   user: root
   volumes:
@@ -140,6 +139,9 @@ services:
   # ------------------------------------------------------------ Khởi tạo (chạy một lần rồi thoát)
   init:
     <<: *app
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
     restart: "no"
     command: ["python", "-m", "sportslake.tools.init_infra"]
     depends_on:
@@ -153,6 +155,9 @@ services:
   # ------------------------------------------------------------ Spark standalone
   spark-master:
     <<: *spark
+    build:
+      context: .
+      dockerfile: docker/spark/Dockerfile
     hostname: spark-master
     restart: unless-stopped
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master", "--host", "spark-master"]

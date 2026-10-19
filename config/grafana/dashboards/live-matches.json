@@ -22,6 +22,10 @@
     "w": 12,
     "h": 9
    },
+   "datasource": {
+    "type": "elasticsearch",
+    "uid": "es_state"
+   },
    "targets": [
     {
      "refId": "A",
@@ -96,6 +100,10 @@
     "y": 0,
     "w": 12,
     "h": 9
+   },
+   "datasource": {
+    "type": "elasticsearch",
+    "uid": "es_alerts"
    },
    "targets": [
     {
@@ -172,6 +180,10 @@
     "w": 24,
     "h": 9
    },
+   "datasource": {
+    "type": "elasticsearch",
+    "uid": "es_exc"
+   },
    "targets": [
     {
      "refId": "A",
@@ -246,6 +258,10 @@
     "y": 18,
     "w": 14,
     "h": 10
+   },
+   "datasource": {
+    "type": "elasticsearch",
+    "uid": "es_events"
    },
    "targets": [
     {
@@ -329,6 +345,10 @@
     "y": 18,
     "w": 10,
     "h": 10
+   },
+   "datasource": {
+    "type": "elasticsearch",
+    "uid": "es_stand"
    },
    "targets": [
     {
